@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Heheeee</title>
     <!-- Trỏ tới file định dạng favicon.png ở chung thư mục -->
     <link rel="icon" type="image/png" href="./favicon.png">
@@ -203,6 +203,117 @@
             opacity: 1;
             top: 50px;
         }
+
+        /* MOBILE RESPONSIVE STYLES */
+        .mobile-controls {
+            display: none; /* hidden on PC */
+            width: 100%;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding: 0 10px;
+            box-sizing: border-box;
+            touch-action: none; /* prevent default touch actions */
+        }
+
+        .m-pad {
+            display: grid;
+            gap: 10px;
+        }
+
+        .d-pad {
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+        }
+        
+        .action-pad {
+            grid-template-columns: 60px 60px;
+            grid-template-rows: 60px 60px;
+            justify-items: right;
+        }
+
+        .m-btn {
+            background: rgba(31, 40, 51, 0.8);
+            border: 2px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(69, 162, 158, 0.4);
+            transition: transform 0.1s;
+        }
+        .m-btn:active, .m-btn.active-touch {
+            transform: scale(0.9);
+            box-shadow: 0 0 20px var(--text-color);
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* Specific pad placements */
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
+        #btn-hold { grid-column: 1; grid-row: 1; }
+        #btn-space { grid-column: 2; grid-row: 1; border-radius: 15px; width: 100%; height: 100%; }
+        #btn-rotate { grid-column: 2; grid-row: 2; width: 100%; height: 100%; }
+
+        @media (max-width: 768px) {
+            body {
+                align-items: flex-start;
+                padding-top: 10px;
+            }
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+            }
+            .side-panel {
+                flex-direction: row;
+                flex-wrap: wrap;
+                width: 100%;
+                justify-content: center;
+                gap: 10px;
+            }
+            .info-box {
+                padding: 5px 10px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+            .info-box h2 {
+                font-size: 10px;
+                margin-bottom: 2px;
+            }
+            .value {
+                font-size: 16px;
+            }
+            .small-canvas {
+                width: 60px;
+                height: 60px;
+            }
+            .controls-hint {
+                display: none; /* Hide keyboard hints */
+            }
+            .controls {
+                flex-direction: row;
+            }
+            /* Move leaderboard info away to save space */
+            #leaderboard-box {
+                display: none;
+            }
+            
+            /* Show Mobile Controls */
+            .mobile-controls {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -231,6 +342,11 @@
         </div>
 
         <div class="info-box">
+            <h2>Số dòng</h2>
+            <div id="lines" class="value">0</div>
+        </div>
+
+        <div class="info-box" id="leaderboard-box">
             <h2>Kỷ Lục</h2>
             <div id="leaderboard-list" style="font-size: 16px; font-weight: bold; text-align: left; line-height: 1.6; color: var(--border-dim);">
                 Chưa có điểm
@@ -275,6 +391,21 @@
             <div><kbd>Space</kbd> : Thả cứng</div>
             <div><kbd>C</kbd> / <kbd>Shift</kbd> : Giữ(Hold)</div>
             <div><kbd>P</kbd> / <kbd>Esc</kbd> : Tạm dừng</div>
+        </div>
+    </div>
+
+    <!-- Virtual Touch Controls for Mobile -->
+    <div class="mobile-controls">
+        <div class="m-pad d-pad">
+            <div id="btn-up" class="m-btn" style="visibility:hidden;"></div>
+            <div id="btn-left" class="m-btn">⬅</div>
+            <div id="btn-down" class="m-btn">⬇</div>
+            <div id="btn-right" class="m-btn">➡</div>
+        </div>
+        <div class="m-pad action-pad">
+            <div id="btn-hold" class="m-btn">H</div>
+            <div id="btn-space" class="m-btn">⏬</div>
+            <div id="btn-rotate" class="m-btn">↻</div>
         </div>
     </div>
 </div>
@@ -479,15 +610,29 @@ renderLeaderboard();
 
 // Auto-scale the game to fit 1/3 of the screen width, or max 90% of height
 function resizeGame() {
+    const isMobile = window.innerWidth <= 768;
     const container = document.querySelector('.game-container');
-    const targetWidthScale = (window.innerWidth / 3) / 300; // 300 is base board width
-    const targetHeightScale = (window.innerHeight * 0.9) / 600; // 600 is base board height
     
-    // Choose the smaller scale to prevent overflowing the screen
-    const scale = Math.max(1, Math.min(targetWidthScale, targetHeightScale));
-    
-    container.style.transform = `scale(${scale})`;
-    container.style.transformOrigin = 'center center';
+    let scale;
+    if (isMobile) {
+        // Safe bound the UI within the mobile bounds, reducing height requirement to give room to Controls
+        const targetWidthScale = window.innerWidth / 330; 
+        const availableHeight = window.innerHeight - 200; // Give ~200px bottom spacing for buttons
+        const targetHeightScale = availableHeight / 600;
+        
+        scale = Math.min(targetWidthScale, targetHeightScale);
+        if (scale < 0.5) scale = 0.5; // Prevent becoming unplayably small
+        
+        container.style.transform = `scale(${scale})`;
+        container.style.transformOrigin = 'top center';
+    } else {
+        const targetWidthScale = (window.innerWidth / 3) / 300; 
+        const targetHeightScale = (window.innerHeight * 0.9) / 600; 
+        
+        scale = Math.max(1, Math.min(targetWidthScale, targetHeightScale));
+        container.style.transform = `scale(${scale})`;
+        container.style.transformOrigin = 'center center';
+    }
 }
 
 window.addEventListener('resize', resizeGame);
@@ -1084,6 +1229,76 @@ document.addEventListener('keydown', event => {
 
 // Initial draw (empty states)
 draw();
+
+// -----------------------------------------
+// Mobile Touch Controls & Long Press Logic
+// -----------------------------------------
+const touchBtns = {
+    'btn-left': () => pieceMove(-1),
+    'btn-right': () => pieceMove(1),
+    'btn-down': () => { pieceDrop(); score++; updateScore(); },
+    'btn-rotate': () => pieceRotate(1),
+    'btn-space': () => hardDrop(),
+    'btn-hold': () => hold()
+};
+
+let holdIntervals = {};
+let holdDelays = {};
+
+Object.keys(touchBtns).forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+
+    const action = touchBtns[id];
+    // Buttons that can be held down
+    const isContinuous = (id === 'btn-left' || id === 'btn-right' || id === 'btn-down');
+
+    const startAction = (e) => {
+        if (e && e.type.startsWith('touch')) {
+            e.preventDefault(); // prevent zoom or scroll
+        }
+        if (!isPlaying || isPaused || isClearingLines) return;
+        
+        btn.classList.add('active-touch');
+        action(); // Fire once immediately
+        
+        if (isContinuous) {
+            clearTimeout(holdDelays[id]);
+            clearInterval(holdIntervals[id]);
+            // Wait 250ms before starting rapid repeat
+            holdDelays[id] = setTimeout(() => {
+                holdIntervals[id] = setInterval(() => {
+                    if (isPlaying && !isPaused && !isClearingLines) {
+                        action();
+                    } else {
+                        clearInterval(holdIntervals[id]);
+                    }
+                }, id === 'btn-down' ? 50 : 80); // Move Fast
+            }, 250);
+        }
+    };
+
+    const stopAction = (e) => {
+        if (e && e.type.startsWith('touch')) {
+            e.preventDefault();
+        }
+        btn.classList.remove('active-touch');
+        if (isContinuous) {
+            clearTimeout(holdDelays[id]);
+            clearInterval(holdIntervals[id]);
+        }
+    };
+
+    // Bind both mouse and touch to support debugging on PC or touching on Mobile
+    btn.addEventListener('mousedown', startAction);
+    btn.addEventListener('touchstart', startAction, {passive: false});
+    
+    btn.addEventListener('mouseup', stopAction);
+    btn.addEventListener('mouseleave', stopAction);
+    btn.addEventListener('touchend', stopAction, {passive: false});
+    btn.addEventListener('touchcancel', stopAction, {passive: false});
+});
+
 </script>
 </body>
 </html>
